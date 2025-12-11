@@ -33,7 +33,6 @@ class StartScreen extends StatelessWidget {
                 height: 49.0,
                 text: 'Вход',
                 onPressed: () {
-                  // Используем именованную маршрутизацию
                   Navigator.pushNamed(context, '/login');
                 },
               ),
@@ -44,7 +43,6 @@ class StartScreen extends StatelessWidget {
                 height: 49.0,
                 text: 'Регистрация',
                 onPressed: () {
-                  // Используем именованную маршрутизацию
                   Navigator.pushNamed(context, '/register');
                 },
               ),

@@ -17,7 +17,7 @@ class CustomTextField extends StatelessWidget {
   final Color fillColor;
   final double? width;
   final double? height;
-  final bool fixedHeight; // Новый параметр для фиксации высоты
+  final bool fixedHeight;
 
   const CustomTextField({
     super.key,
@@ -37,7 +37,7 @@ class CustomTextField extends StatelessWidget {
     this.fillColor = const Color(0xFFF5F5F5),
     this.width,
     this.height,
-    this.fixedHeight = false, // По умолчанию false
+    this.fixedHeight = false,
   });
 
   @override
@@ -73,8 +73,7 @@ class CustomTextField extends StatelessWidget {
             labelStyle: TextStyle(
               color: enabled ? Colors.black87 : Colors.grey,
             ),
-            // Фиксируем высоту InputDecorator
-            isCollapsed: fixedHeight, // Это ключевой параметр!
+            isCollapsed: fixedHeight,
             errorStyle: fixedHeight
                 ? const TextStyle(
                     fontSize: 12,

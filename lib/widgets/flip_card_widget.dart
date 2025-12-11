@@ -91,7 +91,6 @@ class _FlipCardWidgetState extends State<FlipCardWidget>
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
-              // Используем value контроллера для анимации
               double angle = _controller.value * 3.14159;
               
               if (!_isFront && _controller.value == 0) {

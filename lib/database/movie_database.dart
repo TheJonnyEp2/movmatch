@@ -62,7 +62,7 @@ class MovieDatabase {
       await _movieBox!.put(movie.id, movie);
     }
     
-    print('🎉 Initial data populated: ${movies.length} movies');
+    print('Initial data populated: ${movies.length} movies');
   }
 
   // Получить все фильмы
@@ -117,7 +117,6 @@ class MovieDatabase {
     print('Database cleared');
   }
 
-  // Закрыть БД
   Future<void> close() async {
     if (_movieBox != null && _movieBox!.isOpen) {
       await _movieBox!.close();

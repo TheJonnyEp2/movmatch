@@ -1,6 +1,6 @@
 import 'package:hive/hive.dart';
 
-part 'movie_model.g.dart'; // Генерируемый файл
+part 'movie_model.g.dart';
 
 @HiveType(typeId: 0)
 class Movie extends HiveObject {
