@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 
 class FlipCardWidget extends StatefulWidget {
   final String imageUrl;
@@ -23,91 +24,115 @@ class FlipCardWidget extends StatefulWidget {
 }
 
 class _FlipCardWidgetState extends State<FlipCardWidget>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+    with TickerProviderStateMixin {
+  late AnimationController _flipController;
+  late AnimationController _swipeController;
+
   bool _isFront = true;
   bool _isAnimating = false;
+
+  Offset _dragOffset = Offset.zero;
+  static const double _swipeThreshold = 120;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+
+    _flipController = AnimationController(
       duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _swipeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _flipController.dispose();
+    _swipeController.dispose();
     super.dispose();
   }
 
   void _toggleCard() async {
     if (_isAnimating) return;
-    
     _isAnimating = true;
-    
+
     if (_isFront) {
-      // Переворот с лицевой на обратную сторону
-      await _controller.forward();
-      setState(() {
-        _isFront = false;
+      await _flipController.forward();
+      _isFront = false;
+    } else {
+      await _flipController.reverse();
+      _isFront = true;
+    }
+
+    _isAnimating = false;
+  }
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragOffset += details.delta;
+    });
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    if (_dragOffset.dx.abs() > _swipeThreshold) {
+      _swipeController.forward().then((_) {
+        widget.onSwiped?.call();
+        _swipeController.reset();
+        _dragOffset = Offset.zero;
       });
     } else {
-      // Переворот с обратной на лицевую сторону
-      await _controller.reverse();
       setState(() {
-        _isFront = true;
+        _dragOffset = Offset.zero;
       });
     }
-    
-    _isAnimating = false;
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: _toggleCard,
-      child: Dismissible(
-        key: ValueKey(widget.imageUrl + widget.title + widget.description),
-        direction: DismissDirection.horizontal,
-        onDismissed: (direction) {
-          if (widget.onSwiped != null) {
-            widget.onSwiped!();
-          }
-        },
-        background: Container(
-          color: Colors.red,
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-        ),
-        secondaryBackground: Container(
-          color: Colors.blue,
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-        ),
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              double angle = _controller.value * 3.14159;
-              
-              if (!_isFront && _controller.value == 0) {
-                angle = 3.14159;
-              }
-              
-              final transform = Matrix4.identity()
-                ..setEntry(3, 2, 0.001)
-                ..rotateY(angle);
+      onPanUpdate: _onDragUpdate,
+      onPanEnd: _onDragEnd,
+      child: AnimatedBuilder(
+        animation: _swipeController,
+        builder: (context, child) {
+          final slideX = _dragOffset.dx +
+              _swipeController.value *
+                  800 *
+                  (_dragOffset.dx >= 0 ? 1 : -1);
 
-              return Transform(
-                transform: transform,
-                alignment: Alignment.center,
-                child: _controller.value < 0.5 ? _buildFront() : _buildBack(),
-              );
-            },
-          ),
+          final rotate = _dragOffset.dx / 500;
+
+          return Transform.translate(
+            offset: Offset(slideX, 0),
+            child: Transform.rotate(
+              angle: rotate,
+              child: child,
+            ),
+          );
+        },
+        child: AnimatedBuilder(
+          animation: _flipController,
+          builder: (context, child) {
+            double angle = _flipController.value * pi;
+            if (!_isFront && _flipController.value == 0) {
+              angle = pi;
+            }
+
+            return Transform(
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateY(angle),
+              alignment: Alignment.center,
+              child: _flipController.value < 0.5
+                  ? _buildFront()
+                  : _buildBack(),
+            );
+          },
         ),
       ),
     );
@@ -133,15 +158,12 @@ class _FlipCardWidgetState extends State<FlipCardWidget>
         child: Image.asset(
           widget.imageUrl,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
+          errorBuilder: (_, __, ___) {
             return Container(
               color: Colors.grey[300],
               child: const Center(
-                child: Icon(
-                  Icons.broken_image,
-                  size: 60,
-                  color: Colors.grey,
-                ),
+                child: Icon(Icons.broken_image,
+                    size: 60, color: Colors.grey),
               ),
             );
           },
@@ -151,9 +173,8 @@ class _FlipCardWidgetState extends State<FlipCardWidget>
   }
 
   Widget _buildBack() {
-    // Обратная сторона изначально повернута на 180°
     return Transform(
-      transform: Matrix4.rotationY(3.14159),
+      transform: Matrix4.rotationY(pi),
       alignment: Alignment.center,
       child: Container(
         width: widget.width,
@@ -163,57 +184,52 @@ class _FlipCardWidgetState extends State<FlipCardWidget>
           color: const Color.fromRGBO(43, 43, 43, 1),
           boxShadow: [
             BoxShadow(
-              color: const Color.fromARGB(255, 223, 223, 223).withOpacity(0.2),
+              color: Colors.white.withOpacity(0.15),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        widget.title,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Color.fromRGBO(210, 112, 255, 1),
-                          fontFamily: 'Onest',
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          height: 1.2,
-                        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Text(
+                      widget.title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color.fromRGBO(210, 112, 255, 1),
+                        fontFamily: 'Onest',
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
                       ),
-                      const SizedBox(height: 16),
-                      Container(
-                        width: 60,
-                        height: 2,
-                        color: Colors.grey[600],
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      width: 60,
+                      height: 2,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      widget.description,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Onest',
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
                       ),
-                      const SizedBox(height: 20),
-                      Text(
-                        widget.description,
-                        textAlign: TextAlign.left,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'Onest',
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

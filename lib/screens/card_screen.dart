@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-//import 'package:provider/provider.dart';
-//import '../providers/auth_provider.dart';
 import '../widgets/flip_card_widget.dart';
 import '../widgets/top_bar.dart';
 import '../database/movie_database.dart';
@@ -27,11 +25,9 @@ class _CardScreenState extends State<CardScreen> {
 
   Future<void> _initializeData() async {
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Загружаем фильмы из БД
+      await Future.delayed(const Duration(milliseconds: 400));
       final movies = await MovieDatabase.instance.getAllMovies();
-      
+
       if (movies.isEmpty) {
         setState(() {
           _isLoading = false;
@@ -43,44 +39,22 @@ class _CardScreenState extends State<CardScreen> {
       setState(() {
         _movies = movies;
         _isLoading = false;
-        _errorMessage = '';
       });
-      
-      print('Загружено ${_movies.length} фильмов');
     } catch (e) {
-      print('Ошибка: $e');
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Ошибка загрузки данных: $e';
+        _errorMessage = 'Ошибка загрузки: $e';
       });
     }
   }
 
   void _onSwiped() {
     setState(() {
-      if (_currentMovieIndex < _movies.length - 1) {
-        _currentMovieIndex++;
-      } else {
-        _currentMovieIndex = 0;
-      }
+      _currentMovieIndex =
+          (_currentMovieIndex + 1) % _movies.length;
     });
   }
 
-  void _reloadData() async {
-    setState(() {
-      _isLoading = true;
-      _currentMovieIndex = 0;
-    });
-    
-    await _initializeData();
-  }
-/*
-  void _logout() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.logout();
-    Navigator.pushReplacementNamed(context, '/login');
-  }
-*/
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,35 +64,8 @@ class _CardScreenState extends State<CardScreen> {
           children: [
             TopBar(activeTab: 'cards'),
             Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _buildContent(),
-                  
-                  const SizedBox(height: 30),
-
-                  if (_movies.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey[700]!),
-                        ),
-                        child: Text(
-                          '${_currentMovieIndex + 1}/${_movies.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+              child: Center(
+                child: _buildContent(),
               ),
             ),
           ],
@@ -126,70 +73,69 @@ class _CardScreenState extends State<CardScreen> {
       ),
     );
   }
-  
+
   Widget _buildContent() {
     if (_isLoading) {
-      return Container(
-        height: 650,
-        width: 400,
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(
-              color: Colors.white,
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Загрузка фильмов...',
-              style: TextStyle(color: Colors.white),
-            ),
-          ],
-        ),
-      );
+      return const CircularProgressIndicator(color: Colors.white);
     }
-    
+
     if (_errorMessage.isNotEmpty) {
-      return Container(
-        height: 650,
-        width: 400,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.red,
-              size: 60,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              _errorMessage,
-              style: const TextStyle(color: Colors.white),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _reloadData,
-              child: const Text('Попробовать снова'),
-            ),
-          ],
-        ),
+      return Text(
+        _errorMessage,
+        style: const TextStyle(color: Colors.white),
       );
     }
-    
-    return FlipCardWidget(
-      key: ValueKey(_currentMovieIndex),
-      imageUrl: _movies[_currentMovieIndex].imageUrl,
-      title: _movies[_currentMovieIndex].title,
-      description: _movies[_currentMovieIndex].description,
-      onSwiped: _onSwiped,
-      width: 400,
+
+    return SizedBox(
+      width: 800,
       height: 650,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const Positioned(
+            left: 0,
+            child: _SideActionButton(
+              icon: Icons.close,
+              color: Colors.grey,
+            ),
+          ),
+          const Positioned(
+            right: 0,
+            child: _SideActionButton(
+              icon: Icons.favorite,
+              color: Color.fromRGBO(210, 112, 255, 1),
+            ),
+          ),
+          FlipCardWidget(
+            key: ValueKey(_currentMovieIndex),
+            imageUrl: _movies[_currentMovieIndex].imageUrl,
+            title: _movies[_currentMovieIndex].title,
+            description: _movies[_currentMovieIndex].description,
+            onSwiped: _onSwiped,
+            width: 400,
+            height: 650,
+          ),
+        ],
+      ),
     );
   }
+}
+
+class _SideActionButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+
+  const _SideActionButton({
+    required this.icon,
+    required this.color,
+  });
 
   @override
-  void dispose() {
-    MovieDatabase.instance.close();
-    super.dispose();
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: 32,
+      backgroundColor: color,
+      child: Icon(icon, color: Colors.white, size: 28),
+    );
   }
 }
