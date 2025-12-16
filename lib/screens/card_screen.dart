@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+//import 'package:provider/provider.dart';
+//import '../providers/auth_provider.dart';
 import '../widgets/flip_card_widget.dart';
+import '../widgets/top_bar.dart';
 import '../database/movie_database.dart';
 import '../models/movie_model.dart';
 
@@ -73,67 +74,52 @@ class _CardScreenState extends State<CardScreen> {
     
     await _initializeData();
   }
-
+/*
   void _logout() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.logout();
     Navigator.pushReplacementNamed(context, '/login');
   }
-
+*/
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    
     return Scaffold(
       backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
       body: SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildTopBar(authProvider),
+            TopBar(activeTab: 'cards'),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _buildContent(),
+                  
+                  const SizedBox(height: 30),
 
-                const SizedBox(height: 38),
-
-                const Text(
-                  'Фильмы',
-                  style: TextStyle(
-                    fontFamily: 'CyGrotesk',
-                    fontSize: 37.4,
-                    fontWeight: FontWeight.bold,
-                    color: Color.fromARGB(221, 255, 255, 255),
-                  ),
-                ),
-                const SizedBox(height: 38),
-                
-                _buildContent(),
-                
-                const SizedBox(height: 30),
-
-                if (_movies.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.grey[700]!),
-                      ),
-                      child: Text(
-                        '${_currentMovieIndex + 1}/${_movies.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                  if (_movies.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.grey[700]!),
+                        ),
+                        child: Text(
+                          '${_currentMovieIndex + 1}/${_movies.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -141,69 +127,6 @@ class _CardScreenState extends State<CardScreen> {
     );
   }
   
-  Widget _buildTopBar(AuthProvider authProvider) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Theme(
-            data: Theme.of(context).copyWith(
-              popupMenuTheme: PopupMenuThemeData(
-                color:  Color.fromRGBO(210, 112, 255, 1),
-                surfaceTintColor: Colors.transparent,
-                shape: RoundedRectangleBorder( 
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ),
-            child: PopupMenuButton<String>(
-              icon: Image.asset('assets/images/ProfileIcon.png'),
-              onSelected: (value) {
-                if (value == 'profile') {
-                  Navigator.pushNamed(context, '/profile');
-                } else if (value == 'logout') {
-                  _logout();
-                }
-              },
-              itemBuilder: (BuildContext context) => [
-                PopupMenuItem(
-                  value: 'profile',
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 7),
-                      const Text(
-                        'Профиль',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ),
-                const PopupMenuDivider(),
-                PopupMenuItem(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 7),
-                      const Text('Выйти', style: TextStyle(color: Colors.white)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          IconButton(
-            icon: Image.asset('assets/images/ChatsIcon.png'),
-            onPressed: () {
-              Navigator.pushNamed(context, '/chats');
-            }
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildContent() {
     if (_isLoading) {
       return Container(

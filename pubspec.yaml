@@ -34,6 +34,7 @@ flutter:
     - assets/images/The_begin.jpg
     - assets/images/ProfileIcon.png
     - assets/images/ChatsIcon.png
+    - assets/images/avatar.jpg
   fonts:
     - family: CyGrotesk
       fonts:
