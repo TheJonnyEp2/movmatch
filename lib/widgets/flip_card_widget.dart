@@ -185,7 +185,7 @@ class _FlipCardWidgetState extends State<FlipCardWidget>
                         style: const TextStyle(
                           color: Color.fromRGBO(210, 112, 255, 1),
                           fontFamily: 'Onest',
-                          fontSize: 24,
+                          fontSize: 32,
                           fontWeight: FontWeight.bold,
                           height: 1.2,
                         ),
@@ -203,7 +203,7 @@ class _FlipCardWidgetState extends State<FlipCardWidget>
                         style: const TextStyle(
                           color: Colors.white,
                           fontFamily: 'Onest',
-                          fontSize: 14,
+                          fontSize: 20,
                           fontWeight: FontWeight.w600,
                           height: 1.4,
                         ),

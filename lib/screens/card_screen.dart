@@ -130,8 +130,8 @@ class _CardScreenState extends State<CardScreen> {
   Widget _buildContent() {
     if (_isLoading) {
       return Container(
-        height: 437,
-        width: 326,
+        height: 650,
+        width: 400,
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -150,8 +150,8 @@ class _CardScreenState extends State<CardScreen> {
     
     if (_errorMessage.isNotEmpty) {
       return Container(
-        height: 437,
-        width: 326,
+        height: 650,
+        width: 400,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -182,8 +182,8 @@ class _CardScreenState extends State<CardScreen> {
       title: _movies[_currentMovieIndex].title,
       description: _movies[_currentMovieIndex].description,
       onSwiped: _onSwiped,
-      width: 326,
-      height: 437,
+      width: 400,
+      height: 650,
     );
   }
 
