@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/top_bar.dart';
 import '../database/movie_database.dart';
 import '../models/movie_model.dart';
+import '../models/user_model.dart';
+import '../providers/auth_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currentUser = authProvider.currentUser;
+
     return Scaffold(
       backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
       body: Column(
@@ -15,7 +21,7 @@ class ProfileScreen extends StatelessWidget {
           TopBar(activeTab: 'profile'),
           Padding(
             padding: const EdgeInsets.all(24),
-            child: _ProfileHeader(),
+            child: _ProfileHeader(user: currentUser),
           ),
           Expanded(child: _LikedMovies()),
         ],
@@ -25,8 +31,15 @@ class ProfileScreen extends StatelessWidget {
 }
 
 class _ProfileHeader extends StatelessWidget {
+  final User? user;
+
+  const _ProfileHeader({this.user});
+
   @override
   Widget build(BuildContext context) {
+    final userName = user != null ? '${user!.name} ${user!.surname}' : 'Владик Бадмаев';
+    final userEmail = user?.email ?? 'email@example.com';
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -40,21 +53,41 @@ class _ProfileHeader extends StatelessWidget {
             backgroundImage: AssetImage('assets/images/avatar.jpg'),
           ),
           const SizedBox(width: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Владик Бадмаев',
-                style: TextStyle(fontFamily: 'Onest', fontSize: 22, fontWeight: FontWeight.w600, color: Colors.white),
-              ),
-              SizedBox(height: 6),
-              Text(
-                'Люблю дизайнить для себя и за денежку, обожаю\nфильмы про супергероев 🍿',
-                style: TextStyle(fontFamily: 'Onest', fontWeight: FontWeight.w600, color: Colors.grey),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  userName,
+                  style: const TextStyle(
+                    fontFamily: 'Onest', 
+                    fontSize: 22, 
+                    fontWeight: FontWeight.w600, 
+                    color: Colors.white
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  userEmail,
+                  style: const TextStyle(
+                    fontFamily: 'Onest', 
+                    fontWeight: FontWeight.w600, 
+                    color: Colors.grey
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Люблю дизайнить для себя и за денежку, обожаю\nфильмы про супергероев 🍿',
+                  style: TextStyle(
+                    fontFamily: 'Onest', 
+                    fontWeight: FontWeight.w600, 
+                    color: Colors.grey
+                  ),
+                ),
+              ],
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 20),
           _Stat('214', 'Фильмы'),
           _Stat('56', 'Совпадений'),
         ],
@@ -75,8 +108,24 @@ class _Stat extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         children: [
-          Text(value, style: const TextStyle(fontFamily: 'Onest', fontSize: 18, fontWeight: FontWeight.w600, color: Color.fromARGB(255, 161, 161, 161))),
-          Text(label, style: const TextStyle(fontFamily: 'Onest', fontSize: 22, fontWeight: FontWeight.w600, color: Color.fromARGB(255, 80, 80, 80))),
+          Text(
+            value, 
+            style: const TextStyle(
+              fontFamily: 'Onest', 
+              fontSize: 18, 
+              fontWeight: FontWeight.w600, 
+              color: Color.fromARGB(255, 161, 161, 161)
+            )
+          ),
+          Text(
+            label, 
+            style: const TextStyle(
+              fontFamily: 'Onest', 
+              fontSize: 22, 
+              fontWeight: FontWeight.w600, 
+              color: Color.fromARGB(255, 80, 80, 80)
+            )
+          ),
         ],
       ),
     );

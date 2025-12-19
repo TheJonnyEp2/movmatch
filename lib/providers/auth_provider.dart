@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../database/user_database.dart';
+import '../models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool _isAuthenticated = false;
   String? _token;
   String? _userEmail;
+  User? _currentUser;
   bool _isLoading = true;
   
   bool get isAuthenticated => _isAuthenticated;
   String? get token => _token;
   String? get userEmail => _userEmail;
+  User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   
   AuthProvider() {
@@ -22,11 +26,19 @@ class AuthProvider extends ChangeNotifier {
       final savedToken = prefs.getString('auth_token');
       final savedEmail = prefs.getString('user_email');
       
-      if (savedToken != null && savedToken.isNotEmpty) {
-        _token = savedToken;
-        _userEmail = savedEmail;
-        _isAuthenticated = true;
-        print('Состояние авторизации загружено для: $_userEmail');
+      if (savedToken != null && savedToken.isNotEmpty && savedEmail != null) {
+        final user = await UserDatabase.instance.getUserByEmail(savedEmail);
+        
+        if (user != null) {
+          _token = savedToken;
+          _userEmail = savedEmail;
+          _currentUser = user;
+          _isAuthenticated = true;
+          print('Состояние авторизации загружено для: $_userEmail');
+        } else {
+          await prefs.remove('auth_token');
+          await prefs.remove('user_email');
+        }
       }
     } catch (e) {
       print('Ошибка загрузки состояния авторизации: $e');
@@ -40,29 +52,26 @@ class AuthProvider extends ChangeNotifier {
     try {
       print('Попытка входа для: $email');
       
-      // Временная имитация
-      await Future.delayed(const Duration(milliseconds: 800));
+      final user = await UserDatabase.instance.authenticateUser(email, password);
       
-      // В реальном приложении здесь проверка с сервера
-      if (email.isEmpty || password.isEmpty) {
+      if (user == null) {
+        print('Неверный email или пароль');
         return false;
       }
       
-      // Генерируем демо-токен
-      final token = 'demo_token_${DateTime.now().millisecondsSinceEpoch}';
+      final token = 'token_${DateTime.now().millisecondsSinceEpoch}_${user.id}';
       
-      // Сохраняем в локальное хранилище
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
-      await prefs.setString('user_email', email);
+      await prefs.setString('user_email', user.email);
       
-      // Обновляем состояние
       _token = token;
-      _userEmail = email;
+      _userEmail = user.email;
+      _currentUser = user;
       _isAuthenticated = true;
       
       notifyListeners();
-      print('Пользователь $email успешно авторизован');
+      print('Пользователь ${user.email} успешно авторизован');
       return true;
     } catch (e) {
       print('Ошибка авторизации: $e');
@@ -74,9 +83,14 @@ class AuthProvider extends ChangeNotifier {
     try {
       print('Попытка регистрации для: $email');
       
-      await Future.delayed(const Duration(milliseconds: 1000));
+      final user = await UserDatabase.instance.createUser(
+        email: email,
+        password: password,
+        name: name,
+        surname: surname,
+      );
       
-      if (email.isEmpty || password.isEmpty || name.isEmpty || surname.isEmpty) {
+      if (user == null) {
         return false;
       }
       
@@ -95,12 +109,36 @@ class AuthProvider extends ChangeNotifier {
       
       _token = null;
       _userEmail = null;
+      _currentUser = null;
       _isAuthenticated = false;
       
       notifyListeners();
       print('Пользователь вышел из системы');
     } catch (e) {
       print('Ошибка при выходе: $e');
+    }
+  }
+  
+  Future<void> updateProfile(String name, String surname) async {
+    try {
+      if (_currentUser != null) {
+        final updatedUser = User(
+          id: _currentUser!.id,
+          email: _currentUser!.email,
+          passwordHash: _currentUser!.passwordHash,
+          name: name,
+          surname: surname,
+          createdAt: _currentUser!.createdAt,
+        );
+        
+        await UserDatabase.instance.updateUser(updatedUser);
+        _currentUser = updatedUser;
+        notifyListeners();
+        
+        print('Профиль пользователя обновлен');
+      }
+    } catch (e) {
+      print('Ошибка обновления профиля: $e');
     }
   }
   

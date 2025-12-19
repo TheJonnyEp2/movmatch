@@ -1,4 +1,3 @@
-// lib/widgets/gradient_button.dart
 import 'package:flutter/material.dart';
 
 class GradientButton extends StatelessWidget {
