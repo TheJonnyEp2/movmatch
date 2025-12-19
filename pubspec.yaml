@@ -26,10 +26,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  build:
-    web:
-      renderer: canvaskit
-  
   assets:
     - assets/images/logo.png
     - assets/images/Darkknight.jpg
