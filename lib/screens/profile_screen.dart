@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../widgets/top_bar.dart';
-import '../database/movie_database.dart';
+import '../database/favorite_database.dart';
 import '../models/movie_model.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
@@ -16,15 +16,17 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
-      body: Column(
-        children: [
-          TopBar(activeTab: 'profile'),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: _ProfileHeader(user: currentUser),
-          ),
-          Expanded(child: _LikedMovies()),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            TopBar(activeTab: 'profile'),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: _ProfileHeader(user: currentUser),
+            ),
+            Expanded(child: _LikedMovies()),
+          ],
+        ),
       ),
     );
   }
@@ -88,7 +90,15 @@ class _ProfileHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 20),
-          _Stat('214', 'Фильмы'),
+          FutureBuilder<int>(
+            future: user != null 
+                ? FavoriteDatabase.instance.getUserLikesCount(user!.id)
+                : Future.value(0),
+            builder: (context, snapshot) {
+              final likesCount = snapshot.data ?? 0;
+              return _Stat(likesCount.toString(), 'Понравилось');
+            },
+          ),
           _Stat('56', 'Совпадений'),
         ],
       ),
@@ -140,6 +150,7 @@ class _LikedMovies extends StatefulWidget {
 class _LikedMoviesState extends State<_LikedMovies> {
   List<Movie> _movies = [];
   bool _isLoading = true;
+  String _errorMessage = '';
 
   @override
   void initState() {
@@ -149,13 +160,27 @@ class _LikedMoviesState extends State<_LikedMovies> {
 
   Future<void> _loadMovies() async {
     try {
-      final movies = await MovieDatabase.instance.getAllMovies();
+      final authProvider = context.read<AuthProvider>();
+      final currentUser = authProvider.currentUser;
+      
+      if (currentUser == null) {
+        setState(() {
+          _movies = [];
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      final likedMovies = await FavoriteDatabase.instance
+          .getUserLikedMovies(currentUser.id);
+      
       setState(() {
-        _movies = movies;
+        _movies = likedMovies;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
+        _errorMessage = 'Ошибка загрузки фильмов: $e';
         _isLoading = false;
       });
     }
@@ -164,24 +189,101 @@ class _LikedMoviesState extends State<_LikedMovies> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
-          childAspectRatio: 0.5,
+    if (_errorMessage.isNotEmpty) {
+      return Center(
+        child: Text(
+          _errorMessage,
+          style: const TextStyle(color: Colors.white),
         ),
-        itemCount: _movies.length,
-        itemBuilder: (context, index) {
-          final movie = _movies[index];
-          return _MovieGridCard(movie: movie);
-        },
-      ),
+      );
+    }
+
+    if (_movies.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.movie_outlined,
+              size: 60,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Пока нет понравившихся фильмов',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/cards');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromRGBO(210, 112, 255, 1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Посмотреть фильмы',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          child: Row(
+            children: [
+              Text(
+                'Понравившиеся фильмы (${_movies.length})',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: _loadMovies,
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                tooltip: 'Обновить',
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 0.5,
+              ),
+              itemCount: _movies.length,
+              itemBuilder: (context, index) {
+                final movie = _movies[index];
+                return _MovieGridCard(movie: movie);
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -195,7 +297,7 @@ class _MovieGridCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Потом
+        // TODO: Переход к деталям фильма
       },
       child: Container(
         decoration: BoxDecoration(
@@ -247,17 +349,33 @@ class _MovieGridCard extends StatelessWidget {
                   bottomRight: Radius.circular(12),
                 ),
               ),
-              child: Text(
-                movie.title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'CyGrotesk',
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
+              child: Column(
+                children: [
+                  Text(
+                    movie.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'CyGrotesk',
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    movie.description.length > 100 
+                      ? '${movie.description.substring(0, 100)}...' 
+                      : movie.description,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 10,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
           ],

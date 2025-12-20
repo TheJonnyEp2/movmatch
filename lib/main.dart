@@ -8,11 +8,19 @@ import 'screens/register_screen.dart';
 import 'screens/card_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/chats_screen.dart';
+import 'models/movie_model.dart';
+import 'models/user_model.dart';
+import 'models/favorite_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Инициализация Hive
   await Hive.initFlutter();
+  
+  Hive.registerAdapter(MovieAdapter());
+  Hive.registerAdapter(UserAdapter());
+  Hive.registerAdapter(FavoriteAdapter());
   
   runApp(const MyApp());
 }
@@ -31,10 +39,11 @@ class MyApp extends StatelessWidget {
             theme: ThemeData(
               primaryColor: const Color.fromRGBO(43, 43, 43, 1),
               scaffoldBackgroundColor: const Color.fromRGBO(43, 43, 43, 1),
+              fontFamily: 'Onest',
             ),
             initialRoute: '/',
             
-            //Защита маршрутов
+            // Защита маршрутов
             routes: {
               '/': (context) => const StartScreen(),
               '/login': (context) => const LoginScreen(),
@@ -56,7 +65,7 @@ class MyApp extends StatelessWidget {
               ),
             },
             
-            //Если маршрут не найден
+            // Если маршрут не найден
             onUnknownRoute: (settings) {
               return MaterialPageRoute(
                 builder: (context) => const StartScreen(),

@@ -5,7 +5,7 @@ class FlipCardWidget extends StatefulWidget {
   final String imageUrl;
   final String title;
   final String description;
-  final VoidCallback? onSwiped;
+  final void Function(bool isLiked)? onSwiped;
   final double width;
   final double height;
 
@@ -79,8 +79,10 @@ class _FlipCardWidgetState extends State<FlipCardWidget>
 
   void _onDragEnd(DragEndDetails details) {
     if (_dragOffset.dx.abs() > _swipeThreshold) {
+      bool isLiked = _dragOffset.dx > 0;
+      
       _swipeController.forward().then((_) {
-        widget.onSwiped?.call();
+        widget.onSwiped?.call(isLiked);
         _swipeController.reset();
         _dragOffset = Offset.zero;
       });
