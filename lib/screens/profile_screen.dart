@@ -6,9 +6,14 @@ import '../models/movie_model.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -22,7 +27,10 @@ class ProfileScreen extends StatelessWidget {
             TopBar(activeTab: 'profile'),
             Padding(
               padding: const EdgeInsets.all(24),
-              child: _ProfileHeader(user: currentUser),
+              child: _ProfileHeader(
+                user: currentUser,
+                key: ValueKey(currentUser?.id ?? 'no-user'),
+              ),
             ),
             Expanded(child: _LikedMovies()),
           ],
@@ -35,7 +43,7 @@ class ProfileScreen extends StatelessWidget {
 class _ProfileHeader extends StatelessWidget {
   final User? user;
 
-  const _ProfileHeader({this.user});
+  const _ProfileHeader({super.key, this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -177,6 +185,7 @@ class _LikedMoviesState extends State<_LikedMovies> {
       setState(() {
         _movies = likedMovies;
         _isLoading = false;
+        _errorMessage = '';
       });
     } catch (e) {
       setState(() {
@@ -184,6 +193,12 @@ class _LikedMoviesState extends State<_LikedMovies> {
         _isLoading = false;
       });
     }
+  }
+
+  void _removeMovieFromList(int movieId) {
+    setState(() {
+      _movies.removeWhere((movie) => movie.id == movieId);
+    });
   }
 
   @override
@@ -196,9 +211,22 @@ class _LikedMoviesState extends State<_LikedMovies> {
 
     if (_errorMessage.isNotEmpty) {
       return Center(
-        child: Text(
-          _errorMessage,
-          style: const TextStyle(color: Colors.white),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _errorMessage,
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadMovies,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromRGBO(210, 112, 255, 1),
+              ),
+              child: const Text('Повторить'),
+            ),
+          ],
         ),
       );
     }
@@ -249,10 +277,10 @@ class _LikedMoviesState extends State<_LikedMovies> {
           child: Row(
             children: [
               Text(
-                'Понравившиеся фильмы (${_movies.length})',
+                'Понравившиеся фильмы',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -278,7 +306,10 @@ class _LikedMoviesState extends State<_LikedMovies> {
               itemCount: _movies.length,
               itemBuilder: (context, index) {
                 final movie = _movies[index];
-                return _MovieGridCard(movie: movie);
+                return _MovieGridCard(
+                  movie: movie,
+                  onMovieRemoved: () => _removeMovieFromList(movie.id),
+                );
               },
             ),
           ),
@@ -288,10 +319,94 @@ class _LikedMoviesState extends State<_LikedMovies> {
   }
 }
 
-class _MovieGridCard extends StatelessWidget {
+class _MovieGridCard extends StatefulWidget {
   final Movie movie;
+  final VoidCallback? onMovieRemoved;
 
-  const _MovieGridCard({required this.movie});
+  const _MovieGridCard({
+    required this.movie,
+    this.onMovieRemoved,
+  });
+
+  @override
+  State<_MovieGridCard> createState() => _MovieGridCardState();
+}
+
+class _MovieGridCardState extends State<_MovieGridCard> {
+  bool _isRemoving = false;
+
+  Future<void> _removeFromFavorites() async {
+    try {
+      setState(() {
+        _isRemoving = true;
+      });
+
+      final authProvider = context.read<AuthProvider>();
+      final currentUser = authProvider.currentUser;
+      
+      if (currentUser != null) {
+        await FavoriteDatabase.instance.removeFromLiked(
+          currentUser.id,
+          widget.movie.id,
+        );
+           
+        widget.onMovieRemoved?.call();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка удаления: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRemoving = false;
+        });
+      }
+    }
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
+        title: const Text(
+          'Удалить из понравившихся?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Вы уверены, что хотите удалить "${widget.movie.title}" из понравившихся?',
+          style: const TextStyle(color: Colors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Отмена',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _removeFromFavorites();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromRGBO(210, 112, 255, 1),
+            ),
+            child: const Text(
+              'Удалить',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -311,71 +426,109 @@ class _MovieGridCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Stack(
           children: [
-            Expanded(
-              flex: 4,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                    child: Image.asset(
+                      widget.movie.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey.shade800,
+                          child: const Center(
+                            child: Icon(
+                              Icons.movie_outlined,
+                              color: Colors.grey,
+                              size: 30,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-                child: Image.asset(
-                  movie.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey.shade800,
-                      child: const Center(
-                        child: Icon(
-                          Icons.movie_outlined,
-                          color: Colors.grey,
-                          size: 30,
+                
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.8),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(12),
+                      bottomRight: Radius.circular(12),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        widget.movie.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'CyGrotesk',
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
-                    );
-                  },
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.movie.description.length > 100 
+                          ? '${widget.movie.description.substring(0, 100)}...' 
+                          : widget.movie.description,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 10,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
             
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    movie.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'CyGrotesk',
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
+                child: IconButton(
+                  onPressed: _isRemoving ? null : _showDeleteConfirmation,
+                  icon: _isRemoving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.favorite,
+                          color: Colors.red,
+                          size: 20,
+                        ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    movie.description.length > 100 
-                      ? '${movie.description.substring(0, 100)}...' 
-                      : movie.description,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 10,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                  tooltip: 'Удалить из понравившихся',
+                ),
               ),
             ),
           ],

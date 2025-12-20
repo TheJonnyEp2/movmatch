@@ -10,7 +10,7 @@ class ChatDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromRGBO(43, 43, 43, 1), // Добавляем фон
+      backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
       body: SafeArea(
         child: Column(
           children: [
