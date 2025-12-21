@@ -53,7 +53,7 @@ class TopBar extends StatelessWidget {
             onTap: () => Navigator.pushNamed(context, '/profile'),
             child: CircleAvatar(
               radius: 18,
-              backgroundImage: AssetImage('assets/images/avatar.jpg'),
+              backgroundImage: AssetImage('assets/images/Profile.png'),
             ),
           ),
         ],

@@ -36,11 +36,28 @@ class UserDatabase {
     }
   }
 
+  Future<void> updateUserBio(String userId, String newBio) async {
+    try {
+      final box = await this.box;
+      final user = await getUserById(userId);
+      
+      if (user != null) {
+        user.bio = newBio;
+        await box.put(userId, user);
+        print('Описание профиля обновлено для пользователя $userId');
+      }
+    } catch (e) {
+      print('Ошибка обновления описания профиля: $e');
+      rethrow;
+    }
+  }
+
   Future<User?> createUser({
     required String email,
     required String password,
     required String name,
     required String surname,
+    String bio = 'Обо мне или моих увлечениях',
   }) async {
     try {
       final box = await this.box;

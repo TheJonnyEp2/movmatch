@@ -146,4 +146,29 @@ class AuthProvider extends ChangeNotifier {
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
     return emailRegex.hasMatch(email);
   }
+
+  Future<void> updateBio(String bio) async {
+    try {
+      if (_currentUser != null) {
+        final updatedUser = User(
+          id: _currentUser!.id,
+          email: _currentUser!.email,
+          passwordHash: _currentUser!.passwordHash,
+          name: _currentUser!.name,
+          surname: _currentUser!.surname,
+          createdAt: _currentUser!.createdAt,
+          bio: bio,
+        );
+        
+        await UserDatabase.instance.updateUser(updatedUser);
+        _currentUser = updatedUser;
+        notifyListeners();
+        
+        print('Описание профиля обновлено');
+      }
+    } catch (e) {
+      print('Ошибка обновления описания профиля: $e');
+      throw e;
+    }
+  }
 }

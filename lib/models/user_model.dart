@@ -24,6 +24,9 @@ class User extends HiveObject {
   @HiveField(5)
   final DateTime createdAt;
 
+  @HiveField(6)
+  String bio;
+
   User({
     required this.id,
     required this.email,
@@ -31,6 +34,7 @@ class User extends HiveObject {
     required this.name,
     required this.surname,
     required this.createdAt,
+    this.bio = 'Обо мне или моих увлечениях',
   });
 
   bool verifyPassword(String password) {
