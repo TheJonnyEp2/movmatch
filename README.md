@@ -1,3 +1,3 @@
-# mov
+# Movmatch
 
-A new Flutter project.
+То самое приложение для знакомств по фильмам
