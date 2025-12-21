@@ -20,6 +20,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   String _errorMessage = '';
+  bool _obscurePassword = true;
+  bool _obscurePasswordConfirm = true;
   
   @override
   void dispose() {
@@ -144,7 +146,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       CustomTextField(
                         controller: _passwordController,
                         labelText: 'Пароль',
-                        obscureText: true,
+                        obscureText: _obscurePassword,
+                        suffixIcon: _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        onSuffixPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
                         width: 217.0,
                         height: 49.0,
                         validator: (value) {
@@ -162,7 +170,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       CustomTextField(
                         controller: _passwordconfirmController,
                         labelText: 'Подтвердите пароль',
-                        obscureText: true,
+                        obscureText: _obscurePasswordConfirm,
+                        suffixIcon: _obscurePasswordConfirm ? Icons.visibility : Icons.visibility_off,
+                        onSuffixPressed: () {
+                          setState(() {
+                            _obscurePasswordConfirm = !_obscurePasswordConfirm;
+                          });
+                        },
                         width: 217.0,
                         height: 49.0,
                         validator: (value) {

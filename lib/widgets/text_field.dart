@@ -69,10 +69,19 @@ class CustomTextField extends StatelessWidget {
               horizontal: 16,
               vertical: 18,
             ),
-            floatingLabelBehavior: FloatingLabelBehavior.auto,
+            floatingLabelBehavior: FloatingLabelBehavior.never,
             labelStyle: TextStyle(
               color: enabled ? Colors.black87 : Colors.grey,
             ),
+            suffixIcon: suffixIcon != null
+              ? IconButton(
+                icon: Icon(
+                  suffixIcon,
+                    color: Colors.grey,
+                  ),
+                  onPressed: onSuffixPressed,
+                )
+              : null,
             isCollapsed: fixedHeight,
             errorStyle: fixedHeight
                 ? const TextStyle(

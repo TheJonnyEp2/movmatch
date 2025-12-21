@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   String _errorMessage = '';
+  bool _isPasswordVisible = false;
 
   @override
   void dispose() {
@@ -105,7 +106,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       CustomTextField(
                         controller: _passwordController,
                         labelText: 'Пароль',
-                        obscureText: true,
+                        obscureText: !_isPasswordVisible,
+                        suffixIcon: _isPasswordVisible 
+                            ? Icons.visibility_off 
+                            : Icons.visibility,
+                        onSuffixPressed: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
                         width: 217.0,
                         height: 49.0,
                         validator: (value) {
