@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (success) {
-          //ВХОД - ПЕРЕНАПРАВЛЯЕМ НА /cards
+          await authProvider.saveCurrentRoute('/cards');
           Navigator.pushReplacementNamed(context, '/cards');
         } else {
           setState(() {

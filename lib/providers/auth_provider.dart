@@ -9,15 +9,27 @@ class AuthProvider extends ChangeNotifier {
   String? _userEmail;
   User? _currentUser;
   bool _isLoading = true;
+  String _currentRoute = '/cards';
   
   bool get isAuthenticated => _isAuthenticated;
   String? get token => _token;
   String? get userEmail => _userEmail;
   User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
+  String get currentRoute => _currentRoute;
   
-  AuthProvider() {
-    _loadAuthState();
+  // Метод для инициализации провайдера
+  Future<void> initialize() async {
+    await _loadAuthState();
+  }
+  
+  // Метод для сохранения текущего маршрута
+  Future<void> saveCurrentRoute(String route) async {
+    _currentRoute = route;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('current_route', route);
+    print('Сохранен маршрут: $route');
+    notifyListeners();
   }
   
   Future<void> _loadAuthState() async {
@@ -25,8 +37,19 @@ class AuthProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final savedToken = prefs.getString('auth_token');
       final savedEmail = prefs.getString('user_email');
+      final savedRoute = prefs.getString('current_route');
+      
+      print('Загружено из SharedPreferences:');
+      print('Токен: $savedToken');
+      print('Email: $savedEmail');
+      print('Маршрут: $savedRoute');
+      
+      if (savedRoute != null && savedRoute.isNotEmpty) {
+        _currentRoute = savedRoute;
+      }
       
       if (savedToken != null && savedToken.isNotEmpty && savedEmail != null) {
+        print('Попытка загрузки пользователя: $savedEmail');
         final user = await UserDatabase.instance.getUserByEmail(savedEmail);
         
         if (user != null) {
@@ -34,18 +57,36 @@ class AuthProvider extends ChangeNotifier {
           _userEmail = savedEmail;
           _currentUser = user;
           _isAuthenticated = true;
-          print('Состояние авторизации загружено для: $_userEmail');
+          print('✅ Авторизация восстановлена для: $_userEmail');
+          print('✅ Текущий маршрут: $_currentRoute');
         } else {
-          await prefs.remove('auth_token');
-          await prefs.remove('user_email');
+          print('❌ Пользователь не найден в базе данных');
+          await _clearAuthData();
         }
+      } else {
+        print('❌ Нет сохраненных данных для авторизации');
       }
     } catch (e) {
-      print('Ошибка загрузки состояния авторизации: $e');
+      print('❌ Ошибка загрузки состояния авторизации: $e');
+      await _clearAuthData();
     } finally {
       _isLoading = false;
       notifyListeners();
+      print('✅ Состояние авторизации загружено. isAuthenticated: $_isAuthenticated');
     }
+  }
+  
+  Future<void> _clearAuthData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('user_email');
+    await prefs.remove('current_route');
+    
+    _token = null;
+    _userEmail = null;
+    _currentUser = null;
+    _isAuthenticated = false;
+    _currentRoute = '/cards';
   }
   
   Future<bool> login(String email, String password) async {
@@ -64,17 +105,19 @@ class AuthProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
       await prefs.setString('user_email', user.email);
+      await prefs.setString('current_route', '/cards');
       
       _token = token;
       _userEmail = user.email;
       _currentUser = user;
       _isAuthenticated = true;
+      _currentRoute = '/cards';
       
       notifyListeners();
-      print('Пользователь ${user.email} успешно авторизован');
+      print('✅ Пользователь ${user.email} успешно авторизован');
       return true;
     } catch (e) {
-      print('Ошибка авторизации: $e');
+      print('❌ Ошибка авторизации: $e');
       return false;
     }
   }
@@ -96,26 +139,20 @@ class AuthProvider extends ChangeNotifier {
       
       return await login(email, password);
     } catch (e) {
-      print('Ошибка регистрации: $e');
+      print('❌ Ошибка регистрации: $e');
       return false;
     }
   }
   
   Future<void> logout() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('auth_token');
-      await prefs.remove('user_email');
-      
-      _token = null;
-      _userEmail = null;
-      _currentUser = null;
-      _isAuthenticated = false;
-      
+      print('Начало выхода из системы...');
+      await _clearAuthData();
       notifyListeners();
-      print('Пользователь вышел из системы');
+      print('✅ Пользователь вышел из системы');
     } catch (e) {
-      print('Ошибка при выходе: $e');
+      print('❌ Ошибка при выходе: $e');
+      rethrow;
     }
   }
   
@@ -129,6 +166,7 @@ class AuthProvider extends ChangeNotifier {
           name: name,
           surname: surname,
           createdAt: _currentUser!.createdAt,
+          bio: _currentUser!.bio,
         );
         
         await UserDatabase.instance.updateUser(updatedUser);
@@ -138,7 +176,7 @@ class AuthProvider extends ChangeNotifier {
         print('Профиль пользователя обновлен');
       }
     } catch (e) {
-      print('Ошибка обновления профиля: $e');
+      print('❌ Ошибка обновления профиля: $e');
     }
   }
   
@@ -167,7 +205,7 @@ class AuthProvider extends ChangeNotifier {
         print('Описание профиля обновлено');
       }
     } catch (e) {
-      print('Ошибка обновления описания профиля: $e');
+      print('❌ Ошибка обновления описания профиля: $e');
       throw e;
     }
   }

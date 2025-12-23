@@ -24,6 +24,10 @@ class _CardScreenState extends State<CardScreen> {
   void initState() {
     super.initState();
     _initializeData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = context.read<AuthProvider>();
+      authProvider.saveCurrentRoute('/cards');
+    });
   }
 
   Future<void> _initializeData() async {
@@ -95,7 +99,7 @@ class _CardScreenState extends State<CardScreen> {
         const SnackBar(
           content: Text('Для добавления в избранное войдите в аккаунт'),
           backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
     }

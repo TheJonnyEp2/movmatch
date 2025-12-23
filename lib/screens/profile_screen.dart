@@ -15,10 +15,37 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = context.read<AuthProvider>();
+      authProvider.saveCurrentRoute('/profile');
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final currentUser = authProvider.currentUser;
 
+    if (!authProvider.isAuthenticated || currentUser == null) {
+      return Scaffold(
+        backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: Colors.white),
+              const SizedBox(height: 20),
+              const Text(
+                'Загрузка профиля...',
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
       body: SafeArea(
@@ -29,7 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(24),
               child: _ProfileHeader(
                 user: currentUser,
-                key: ValueKey(currentUser?.id ?? 'no-user'),
+                key: ValueKey(currentUser.id),
               ),
             ),
             Expanded(child: _LikedMovies()),

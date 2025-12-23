@@ -50,7 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
 
         if (success) {
-          //РЕГИСТРАЦИЯ - ПЕРЕНАПРАВЛЯЕМ НА /cards
+          await authProvider.saveCurrentRoute('/cards');
           Navigator.pushReplacementNamed(context, '/cards');
         } else {
           setState(() {

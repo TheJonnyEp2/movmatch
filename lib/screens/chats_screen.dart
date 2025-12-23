@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/chat_model.dart';
 import 'chat_detail_screen.dart';
 import '../widgets/top_bar.dart';
+import '../providers/auth_provider.dart';
 
 class ChatsScreen extends StatelessWidget {
   const ChatsScreen({super.key});
@@ -30,6 +32,11 @@ class ChatsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = context.read<AuthProvider>();
+      authProvider.saveCurrentRoute('/chats');
+    });
+
     return Scaffold(
       backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
       body: SafeArea(

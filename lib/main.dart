@@ -25,83 +25,152 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late Future<AuthProvider> _authProviderFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _authProviderFuture = _initializeAuthProvider();
+  }
+
+  Future<AuthProvider> _initializeAuthProvider() async {
+    final provider = AuthProvider();
+    await provider.initialize();
+    return provider;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AuthProvider(),
-      child: Consumer<AuthProvider>(
-        builder: (context, authProvider, child) {
+    return FutureBuilder<AuthProvider>(
+      future: _authProviderFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return MaterialApp(
-            title: 'MovMatch',
-            theme: ThemeData(
-              primaryColor: const Color.fromRGBO(43, 43, 43, 1),
-              scaffoldBackgroundColor: const Color.fromRGBO(43, 43, 43, 1),
-              fontFamily: 'Onest',
+            home: Scaffold(
+              backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(color: Colors.white),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Загрузка...',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            initialRoute: '/',
-            
-            // Защита маршрутов
-            routes: {
-              '/': (context) => const StartScreen(),
-              '/login': (context) => const LoginScreen(),
-              '/register': (context) => const RegisterScreen(),
-              '/cards': (context) => _protectedRoute(
-                const CardScreen(), 
-                context,
-                authProvider.isAuthenticated
+          );
+        }
+
+        if (snapshot.hasError) {
+          return MaterialApp(
+            home: Scaffold(
+              backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
+              body: Center(
+                child: Text(
+                  'Ошибка: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
-              '/profile': (context) => _protectedRoute(
-                const ProfileScreen(), 
-                context,
-                authProvider.isAuthenticated
-              ),
-              '/chats': (context) => _protectedRoute(
-                const ChatsScreen(), 
-                context,
-                authProvider.isAuthenticated
-              ),
-            },
-            
-            // Если маршрут не найден
-            onUnknownRoute: (settings) {
-              return MaterialPageRoute(
-                builder: (context) => const StartScreen(),
+            ),
+          );
+        }
+
+        final authProvider = snapshot.data!;
+        
+        return ChangeNotifierProvider.value(
+          value: authProvider,
+          child: Consumer<AuthProvider>(
+            builder: (context, authProvider, child) {
+              return MaterialApp(
+                title: 'MovMatch',
+                theme: ThemeData(
+                  primaryColor: const Color.fromRGBO(43, 43, 43, 1),
+                  scaffoldBackgroundColor: const Color.fromRGBO(43, 43, 43, 1),
+                  fontFamily: 'Onest',
+                ),
+                initialRoute: '/',
+                routes: {
+                  '/': (context) => _buildHomeScreen(authProvider),
+                  '/login': (context) => const LoginScreen(),
+                  '/register': (context) => const RegisterScreen(),
+                  '/cards': (context) => _protectedRoute(
+                    const CardScreen(), 
+                    context,
+                    authProvider.isAuthenticated
+                  ),
+                  '/profile': (context) => _protectedRoute(
+                    const ProfileScreen(), 
+                    context,
+                    authProvider.isAuthenticated
+                  ),
+                  '/chats': (context) => _protectedRoute(
+                    const ChatsScreen(), 
+                    context,
+                    authProvider.isAuthenticated
+                  ),
+                },
+                onUnknownRoute: (settings) {
+                  return MaterialPageRoute(
+                    builder: (context) => _buildHomeScreen(authProvider),
+                  );
+                },
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
+  }
+
+  static Widget _buildHomeScreen(AuthProvider authProvider) {
+    if (!authProvider.isAuthenticated) {
+      return const StartScreen();
+    }
+    
+    switch (authProvider.currentRoute) {
+      case '/profile':
+        return const ProfileScreen();
+      case '/chats':
+        return const ChatsScreen();
+      case '/cards':
+      default:
+        return const CardScreen();
+    }
   }
   
   static Widget _protectedRoute(Widget screen, BuildContext context, bool isAuthenticated) {
     if (!isAuthenticated) {
-      return Builder(
-        builder: (innerContext) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.of(innerContext).pushReplacementNamed('/login');
-          });
-          
-          return Scaffold(
-            backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircularProgressIndicator(color: Colors.white),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Проверка авторизации...',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ],
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      });
+      
+      return Scaffold(
+        backgroundColor: const Color.fromRGBO(43, 43, 43, 1),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: Colors.white),
+              const SizedBox(height: 20),
+              const Text(
+                'Перенаправление на вход...',
+                style: TextStyle(color: Colors.white),
               ),
-            ),
-          );
-        },
+            ],
+          ),
+        ),
       );
     }
     
