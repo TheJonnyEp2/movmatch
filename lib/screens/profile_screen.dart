@@ -469,12 +469,6 @@ class _LikedMoviesState extends State<_LikedMovies> {
                   fontFamily: 'CyGrotesk',
                 ),
               ),
-              const Spacer(),
-              IconButton(
-                onPressed: _loadMovies,
-                icon: const Icon(Icons.refresh, color: Colors.white),
-                tooltip: 'Обновить',
-              ),
             ],
           ),
         ),
